@@ -1,6 +1,185 @@
-<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.css">
-<script src="//cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.js"></script>
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js"></script>
+	<title>Смешной калькулятор</title>
+</head>
+
+<body>
+<h1>Смешной калькулятор</h1>
+<p>Сделано «на коленке»: быстро, дешево, и сердито</p>
+
+<h2>Прыжки на ближайшие соседи</h2>
+
+<div>
+Диэлектрическая проницаемость ε: 
+<input type="text" id="epsilon" placeholder="16.3">
+</div>
+
+<br>
+
+<div>
+Концентрация примеси N, см<sup>-3</sup>: 
+<input type="text" id="Nconc" placeholder="1E15">
+</div>
+
+<br>
+
+<div>
+Тип примеси: 
+<select id="dopant_type">
+	<option value="donor">Донорная</option>
+	<option value="acceptor">Акцепторная</option>
+</select>
+</div>
+
+<br>
+
+<div>
+Степень компенсации K: 
+<input type="text" id="K" placeholder="0.7">
+</div>
+
+<br>
+
+<button id="NearestSolve">Решить</button>
+<div id="NearestSolveHint">
+</div>
+
+<br>
+
+<div id="NearestSolution">
+</div>
+
 <script>
-  katex.render(" f(x) = x^2 + 4x - 5", document.querySelector('#formula'));
+
+renderMathInElement(document.body);
+
+document.getElementById('NearestSolve').addEventListener('click', function()
+{
+	document.getElementById('NearestSolveHint').innerHTML = null;
+	document.getElementById('NearestSolution').innerHTML = null;
+
+	const eps = parseFloat(document.getElementById('epsilon').value.replace(",", "."));
+	const Nconc = parseFloat(document.getElementById('Nconc').value.replace(",", "."));
+	const dopant_type = document.getElementById('dopant_type').value;
+	const K = parseFloat(document.getElementById('K').value.replace(",", "."));
+
+	console.log(eps);
+	console.log(Nconc);
+	console.log(dopant_type);
+	if (dopant_type == "donor")
+	{
+		console.log("Донорная примесь");
+	}
+	else if (dopant_type == "acceptor")
+	{
+		console.log("Акцепторная примесь");
+	}
+	console.log(K);
+
+	if (eps < 1.0 || K < 0 || K > 1 || K == 0.5 || isNaN(eps) || isNaN(Nconc) || isNaN(K))
+	{
+		document.getElementById('NearestSolveHint').innerHTML = "Неверный ввод";
+		return;
+	}
+
+	// Входные данные валидны
+	
+	const Nsub = dopant_type == "donor" ? "D" : "A";
+
+	const q = 1.6 * 1E-19;
+	const eps0 = 8.85 * 1E-14;
+	const pi = 3.1415926535;
+
+	var F = -1 + (1 - K) * 2;
+	if (dopant_type == "acceptor")
+	{
+		F = -1 + K * 2;
+	}
+	const r = Nconc ** (-1/3);
+	const dE = q * q / (4 * pi * eps * eps0 * r);
+	const dE_ev = dE / q;
+	const Ea = Math.abs(F) * dE_ev;
+
+	const Nconc_sci = {};
+	[Nconc_sci.coefficient, Nconc_sci.exponent] = Nconc.toExponential(3).split('e').map(item => Number(item));
+	const Nconc_str = `${Nconc_sci.coefficient} \\times {10}^{${Nconc_sci.exponent}}`
+
+	const r_sci = {};
+	[r_sci.coefficient, r_sci.exponent] = r.toExponential(3).split('e').map(item => Number(item));
+	const r_str = `${r_sci.coefficient} \\times {10}^{${r_sci.exponent}}`
+
+	const dE_sci = {};
+	[dE_sci.coefficient, dE_sci.exponent] = dE.toExponential(3).split('e').map(item => Number(item));
+	const dE_str = `${dE_sci.coefficient} \\times {10}^{${dE_sci.exponent}}`
+
+	const dE_ev_sci = {};
+	[dE_ev_sci.coefficient, dE_ev_sci.exponent] = dE_ev.toExponential(3).split('e').map(item => Number(item));
+	const dE_ev_str = `${dE_ev_sci.coefficient} \\times {10}^{${dE_ev_sci.exponent}}`
+
+	const Ea_sci = {};
+	[Ea_sci.coefficient, Ea_sci.exponent] = Ea.toExponential(3).split('e').map(item => Number(item));
+	const Ea_str = `${Ea_sci.coefficient} \\times {10}^{${Ea_sci.exponent}}`
+
+	const solution = document.getElementById('NearestSolution');
+	solution.innerHTML = null;
+
+	solution.innerHTML += "<p>Требуется найти E<sub>а</sub> (энергию активации прыжковой проводимости прыжков на ближайшие соседи)</p>";
+	solution.innerHTML += "<p>Введенные данные:</p>";
+	solution.innerHTML += `<span>$$\\varepsilon_s = ${eps}$$</span>`;
+	solution.innerHTML += `<span>$$N_${Nsub} = ${Nconc_str} {cm}^{-3}$$</span>`;
+	solution.innerHTML += `<span>$$K = ${K}$$</span>`;
+
+	solution.innerHTML += "<h3>Решение</h3>";
+
+	solution.innerHTML += `<p>${Math.round(100 * K * (10 ** 2)) / (10 ** 2)}% от N<sub>${Nsub}</sub> ионизованы, т.е. ${dopant_type == "donor" ? "не заняты" : "заполнены"} электронами<br>${Math.round(100 * (1 - K) * (10 ** 2)) / (10 ** 2)}% от N<sub>${Nsub}</sub> не ионизованы, т.е. ${dopant_type == "donor" ? "заполнены" : "не заняты"} электронами</p>`;
+
+	solution.innerHTML += `<p>Плотность состояний в интервале энергии от -ΔE<sub>${Nsub}</sub> до +ΔE<sub>${Nsub}</sub> принимается постоянной</p>`;
+
+	solution.innerHTML += `Положение уровня Ферми относительно E<sub>${Nsub}</sub> в единицах ΔE<sub>${Nsub}</sub>:`;
+	if (dopant_type == "donor")
+	{
+		solution.innerHTML += `<span>$$\\frac{F - E_${Nsub}}{\\Delta E_${Nsub}} = -1 + (1 - K) \\times (1 - (-1))$$</span>`;
+		solution.innerHTML += `<span>$$\\frac{F - E_${Nsub}}{\\Delta E_${Nsub}} = -1 + (1 - ${K}) \\times 2$$</span>`;
+	}
+	else if (dopant_type == "acceptor")
+	{
+		solution.innerHTML += `<span>$$\\frac{F - E_${Nsub}}{\\Delta E_${Nsub}} = -1 + K \\times (1 - (-1))$$</span>`;
+		solution.innerHTML += `<span>$$\\frac{F - E_${Nsub}}{\\Delta E_${Nsub}} = -1 + ${K} \\times 2$$</span>`;
+	}
+	solution.innerHTML += `<span>$$\\frac{F - E_${Nsub}}{\\Delta E_${Nsub}} = ${Math.round(F * 10**2) / 10**2}$$</span>`;
+
+	solution.innerHTML += "Среднее расстояние между атомами примеси:";
+	solution.innerHTML += `<span>$$r = N_{${Nsub}}^{-\\frac{1}{3}}$$</span>`;
+	solution.innerHTML += `<span>$$r = {(${Nconc_str})}^{-\\frac{1}{3}}$$</span>`;
+	solution.innerHTML += `<span>$$r = ${r_str} cm$$</span>`;
+
+	solution.innerHTML += "Энергия кулоновского взаимодействия:";
+	solution.innerHTML += `<span>$$\\Delta E_${Nsub} = \\frac{q^2}{4\\pi \\varepsilon \\varepsilon_0 r}$$</span>`;
+	solution.innerHTML += `<span>$$\\Delta E_${Nsub} = \\frac{(1.6 \\times {10}^{-19})^2}{4 \\times 3.14 \\times ${eps} \\times (8.85 \\times {10}^{-14}) \\times (${r_str})}$$</span>`;
+	solution.innerHTML += `<span>$$\\Delta E_${Nsub} = ${dE_str} J$$</span>`;
+
+	solution.innerHTML += "Проверка размерности:";
+	solution.innerHTML += `<span>$$[\\Delta E_${Nsub}] = \\frac{C^2}{\\frac{F}{cm} \\times cm}$$</span>`;
+	solution.innerHTML += `<span>$$[\\Delta E_${Nsub}] = C \\times \\frac{C}{F} = C \\times \\frac{C}{C/V}$$</span>`;
+	solution.innerHTML += `<span>$$[\\Delta E_${Nsub}] = C \\times V = J$$</span>`;
+
+	solution.innerHTML += "Перевод из Дж в эВ (1 эВ = 1.6 × 10<sup>-19</sup> Дж): ";
+	solution.innerHTML += `<span>$$\\Delta E_${Nsub} = ${dE_ev_str} eV$$</span>`;
+
+	solution.innerHTML += "Энергия активации прыжковой проводимости прыжков на ближайшие соседи:";
+	solution.innerHTML += `<span>$$E_a = |\\frac{F - E_${Nsub}}{\\Delta E_${Nsub}}| \\times \\Delta E_${Nsub}$$</span>`;
+	solution.innerHTML += `<span>$$E_a = |${Math.round(F * 10**2) / 10**2}| \\times (${dE_ev_str})$$</span>`;
+	solution.innerHTML += `<span>$$E_a = ${Ea_str} eV$$</span>`;
+
+	renderMathInElement(solution);
+});
+
+
 </script>
-<div id='formula'></div>
+</body>
+</html>
