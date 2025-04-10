@@ -35,7 +35,7 @@
 <h1>Смешной калькулятор</h1>
 <p>Сделано «на коленке»: быстро, дешево, и сердито</p>
 
-<h2>Прыжки на ближайшие соседи (nearest-neighbor hopping)</h2>
+<h2>Прыжки по ближайшим соседям (nearest-neighbor hopping)</h2>
 
 <div>
 Размерность пространства:
@@ -238,7 +238,7 @@ document.getElementById('NearestSolve').addEventListener('click', function()
 	const solution = document.getElementById('NearestSolution');
 	solution.innerHTML = null;
 
-	solution.innerHTML += "<p>Требуется найти E<sub>а</sub> (энергию активации прыжковой проводимости прыжков на ближайшие соседи)</p>";
+	solution.innerHTML += "<p>Требуется найти E<sub>а</sub> (энергию активации прыжковой проводимости прыжков по ближайшим соседям)</p>";
 	solution.innerHTML += "<p>Введенные данные:</p>";
 	solution.innerHTML += `<span>$$\\varepsilon = ${eps}$$</span>`;
 	solution.innerHTML += `<span>$$N_${Nsub} = ${scifyNum(Nconc, 3)} {cm}^{-${dim}}$$</span>`;
@@ -281,7 +281,7 @@ document.getElementById('NearestSolve').addEventListener('click', function()
 	solution.innerHTML += "Перевод из Дж в эВ (1 эВ = 1.6 × 10<sup>-19</sup> Дж):";
 	solution.innerHTML += `<span>$$\\Delta E_${Nsub} = ${scifyNum(dE_ev, 3)} eV$$</span>`;
 
-	solution.innerHTML += "Энергия активации прыжковой проводимости прыжков на ближайшие соседи:";
+	solution.innerHTML += "Энергия активации прыжковой проводимости прыжков по ближайшим соседям:";
 	solution.innerHTML += `<span>$$E_a = |\\frac{F - E_${Nsub}}{\\Delta E_${Nsub}}| \\times \\Delta E_${Nsub}$$</span>`;
 	solution.innerHTML += `<span>$$E_a = |${roundFloat(F, 2)}| \\times (${scifyNum(dE_ev, 3)})$$</span>`;
 	solution.innerHTML += `<span>$$E_a = ${scifyNum(Ea, 3)} eV$$</span>`;
@@ -373,7 +373,7 @@ document.getElementById('VRSolve').addEventListener('click', function()
 	solution.innerHTML = null;
 
 	solution.innerHTML += "<p>Требуется произвести расчет модели прыжковой проводимости с переменной длиной прыжка для заданного материала</p>";
-	solution.innerHTML += `<p>Согласно модельным представлениям, величина энергии активации E<sub>a</sub> прыжковой проводимости с переменной длиной прыжка зависит от температуры, а проводимость описывается выражением следующего вида${dim == 2 ? " (с учетом размерности пространства)" : ""}:</p>`;
+	solution.innerHTML += `<p>Согласно модельным представлениям, величина энергии активации E<sub>a</sub> прыжковой проводимости с переменной длиной прыжка зависит от температуры, а температурная зависимость удельной электрической проводимости описывается выражением следующего вида${dim == 2 ? " (с учетом размерности пространства)" : ""}:</p>`;
 
 	solution.innerHTML += `<span>$$\\sigma = \\sigma_0 \\times exp(-{\\frac{2{N_${Nsub}}^{-\\frac{1}{${dim}}}}{a_B}}-{\\frac{E{a}}{{k}_{B} T}}) $$</span>`;
 	solution.innerHTML += `<span>$$\\sigma = \\sigma_0 \\times exp(-{(\\frac{T_0}{T})}^{\\frac{1}{${parseInt(dim) + 1}}}) $$</span>`;
@@ -382,8 +382,20 @@ document.getElementById('VRSolve').addEventListener('click', function()
 	solution.innerHTML += "<p>Введенные данные:</p>";
 	solution.innerHTML += `<span>$$\\varepsilon = ${eps}$$</span>`;
 	solution.innerHTML += `<span>$$N_${Nsub} = ${scifyNum(Nconc, 3)} {cm}^{-${dim}}$$</span>`;
-	solution.innerHTML += `<span>$$m_l = ${ml}m_0$$</span>`;
-	solution.innerHTML += `<span>$$m_t = ${mt}m_0$$</span>`;
+	if (ml != mt)
+	{
+		solution.innerHTML += `<span>$$m_l = ${ml}m_0$$</span>`;
+		solution.innerHTML += `<span>$$m_t = ${mt}m_0$$</span>`;
+	}
+	else
+	{
+		solution.innerHTML += `<span>$$m_n^\\ast = ${meff}m_0$$</span>`;
+	}
+	solution.innerHTML += `<span>$$T = ${scifyNum(T, 3)} K$$</span>`;
+	if (!isNaN(sigma0))
+	{
+		solution.innerHTML += `<span>$$ \\sigma_0 = ${scifyNum(sigma0, 3)} \\Omega^{-1} ${dim == 3 ? "\\times {cm}^{-1}" : ""} $$</span>`;
+	}
 
 	solution.innerHTML += "<h3>Решение</h3>";
 
@@ -412,20 +424,16 @@ document.getElementById('VRSolve').addEventListener('click', function()
 	solution.innerHTML += `<span>$$g = \\frac{${scifyNum(Nconc, 3)}}{2 \\times (${scifyNum(dE_ev, 3)})}$$</span>`
 	solution.innerHTML += `<span>$$g = ${scifyNum(g, 3)} {cm}^{-${dim}} \\times {eV}^{-1}$$</span>`
 
-	solution.innerHTML += `Средняя эффективная масса электронов${dim == 2 ? " (с учетом размерности пространства)" : ""}:`;
-	if (meff == ml || meff == mt)
+	if (meff != ml && meff != mt)
 	{
-		solution.innerHTML += `<span>$$ {m_n}^{\\ast} = ${roundFloat(meff, 2)}m_0$$</span>`;
-	}
-	else
-	{
-		solution.innerHTML += `<span>$$\\frac{{m_n}^{\\ast}}{m_0} = \\sqrt[${dim}]{m_l m_t${dim == 3 ? "^2" : ""}}$$</span>`;
-		solution.innerHTML += `<span>$$\\frac{{m_n}^{\\ast}}{m_0} = \\sqrt[${dim}]{${ml} \\times ${mt}${dim == 3 ? "^2" : ""}}$$</span>`;
-		solution.innerHTML += `<span>$$ {m_n}^{\\ast} = ${roundFloat(meff, 3)}m_0$$</span>`;
+		solution.innerHTML += `Средняя эффективная масса электронов${dim == 2 ? " (с учетом размерности пространства)" : ""}:`;
+		solution.innerHTML += `<span>$$\\frac{m_n^\\ast}{m_0} = \\sqrt[${dim}]{m_l m_t${dim == 3 ? "^2" : ""}}$$</span>`;
+		solution.innerHTML += `<span>$$\\frac{m_n^\\ast}{m_0} = \\sqrt[${dim}]{${ml} \\times ${mt}${dim == 3 ? "^2" : ""}}$$</span>`;
+		solution.innerHTML += `<span>$$ m_n^\\ast = ${roundFloat(meff, 3)}m_0$$</span>`;
 	}
 
 	solution.innerHTML += "Боровский радиус:";
-	solution.innerHTML += `<span>$$ {a_B} = 0.53 \\times \\varepsilon \\frac{m_0}{{m_n}^{\\ast}}$$</span>`;
+	solution.innerHTML += `<span>$$ {a_B} = 0.53 \\times \\varepsilon \\frac{m_0}{m_n^\\ast}$$</span>`;
 	solution.innerHTML += `<span>$$ {a_B} = 0.53 \\times ${eps} \\times \\frac{1}{${roundFloat(meff, 3)}}$$</span>`;
 	solution.innerHTML += `<span>$$ {a_B} = ${roundFloat(aB_A, 2)} \\text{\\AA} $$</span>`;
 
@@ -493,7 +501,7 @@ document.getElementById('VRSolve').addEventListener('click', function()
 	}
 	else
 	{
-		solution.innerHTML += "Невозможно вычислить удельную электрическую проводимость (величину прыжковой проводимости σ), поскольку не было задано значение предэкспоненциального множителя (σ<sub>0</sub>)";
+		solution.innerHTML += "Невозможно вычислить удельную электрическую проводимость (σ), поскольку не было задано значение предэкспоненциального множителя (σ<sub>0</sub>)";
 	}
 
 	solution.innerHTML += "<h3>Ответ</h3>";
